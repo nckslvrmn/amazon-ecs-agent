@@ -711,9 +711,6 @@ func (dg *dockerGoClient) createContainer(ctx context.Context,
 			Aliases: []string{config.Labels["com.amazonaws.ecs.container-name"]},
 		}
 	}
-	logger.Info("network config", logger.Fields{
-		"networkConfig": *networkConfig.EndpointsConfig[hostConfig.NetworkMode.UserDefined()],
-	})
 
 	dockerContainer, err := client.ContainerCreate(ctx, config, hostConfig, &networkConfig, nil, name)
 	if err != nil {
