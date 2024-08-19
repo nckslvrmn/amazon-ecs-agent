@@ -708,14 +708,11 @@ func (dg *dockerGoClient) createContainer(ctx context.Context,
 	}
 	if dg.config.AddContainerNameAsNetworkAlias.Enabled() {
 		networkConfig.EndpointsConfig[hostConfig.NetworkMode.UserDefined()] = &network.EndpointSettings{
-			Aliases: []string{name},
+			Aliases: []string{config.Labels["com.amazonaws.ecs.container-name"]},
 		}
 	}
 	logger.Info("network config", logger.Fields{
-		"addalias":      dg.config.AddContainerNameAsNetworkAlias.Enabled(),
-		"name":          name,
-		"labels":        config.Labels,
-		"networkConfig": networkConfig,
+		"networkConfig": *networkConfig.EndpointsConfig[hostConfig.NetworkMode.UserDefined()],
 	})
 
 	dockerContainer, err := client.ContainerCreate(ctx, config, hostConfig, &networkConfig, nil, name)
