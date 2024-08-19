@@ -714,6 +714,7 @@ func (dg *dockerGoClient) createContainer(ctx context.Context,
 	logger.Info("network config", logger.Fields{
 		"addalias":      dg.config.AddContainerNameAsNetworkAlias.Enabled(),
 		"name":          name,
+		"labels":        config.Labels,
 		"networkConfig": networkConfig,
 	})
 
