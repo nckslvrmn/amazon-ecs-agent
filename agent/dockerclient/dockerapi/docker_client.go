@@ -709,6 +709,10 @@ func (dg *dockerGoClient) createContainer(ctx context.Context,
 
 	if config.Labels != nil { // This can happen only in tests
 		networkAliasName, networkAliasExists := config.Labels[NetworkAliasDockerLabel]
+		logger.Info("custom network info", logger.Fields{
+			'userdefined': hostConfig.NetworkMode.IsUserDefined,
+			'aliasexists': networkAliasExists
+		})
 		if networkAliasExists && hostConfig.NetworkMode.IsUserDefined() {
 			networkConfig.EndpointsConfig[hostConfig.NetworkMode.UserDefined()] = &network.EndpointSettings{
 				Aliases: []string{networkAliasName},
