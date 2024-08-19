@@ -1999,7 +1999,7 @@ func (engine *DockerTaskEngine) createContainer(task *apitask.Task, container *a
 	config.Labels[labelTaskDefinitionFamily] = task.Family
 	config.Labels[labelTaskDefinitionVersion] = task.Version
 	config.Labels[labelCluster] = engine.cfg.Cluster
-	
+
 	if task.IsNetworkModeBridge() && engine.cfg.OverrideBridgeNetworkName != "" {
 		logger.Info("Assigning docker container to a custom network", logger.Fields{
 			field.TaskID:    task.GetID(),

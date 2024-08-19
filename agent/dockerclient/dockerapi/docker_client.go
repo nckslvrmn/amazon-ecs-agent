@@ -703,10 +703,9 @@ func (dg *dockerGoClient) createContainer(ctx context.Context,
 		return DockerContainerMetadata{Error: CannotGetDockerClientError{version: dg.version, err: err}}
 	}
 
-	networkConfig := network.NetworkingConfig{
-		EndpointsConfig: make(map[string]*network.EndpointSettings),
-	}
-	if dg.config.AddContainerNameAsNetworkAlias.Enabled() {
+	networkConfig := network.NetworkingConfig{}
+	if hostConfig.NetworkMode.IsUserDefined() && dg.config.AddContainerNameAsNetworkAlias.Enabled() {
+		networkConfig.EndpointsConfig = make(map[string]*network.EndpointSettings)
 		networkConfig.EndpointsConfig[hostConfig.NetworkMode.UserDefined()] = &network.EndpointSettings{
 			Aliases: []string{config.Labels["com.amazonaws.ecs.container-name"]},
 		}

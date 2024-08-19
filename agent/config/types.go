@@ -384,7 +384,7 @@ type Config struct {
 	// cgroup setting at the ECS task level.
 	// see https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html#pid
 	TaskPidsLimit int
-	
+
 	// OverrideBridgeNetworkName is a custom bridge name used for docker container - it has to be created before an agent start
 	OverrideBridgeNetworkName string `trim:"true"`
 
