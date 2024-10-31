@@ -296,6 +296,17 @@ type Task struct {
 	NetworkMode string `json:"NetworkMode,omitempty"`
 
 	IsInternal bool `json:"IsInternal,omitempty"`
+
+	NetworkNamespace string `json:"NetworkNamespace,omitempty"`
+
+	EnableFaultInjection bool `json:"enableFaultInjection,omitempty"`
+
+	// DefaultIfname is used to reference the default network interface name on the task network namespace
+	// For AWSVPC mode, it can be eth0 which corresponds to the interface name on the task ENI
+	// For Host mode, it can vary based on the hardware/network config on the host instance (e.g. eth0, ens5, etc.) and will need to be obtained on the host.
+	// For all other network modes (i.e. bridge, none, etc.), DefaultIfname is currently not being initialized/set. In order to use this task field for these
+	// network modes, changes will need to be made in the corresponding task provisioning workflows.
+	DefaultIfname string `json:"DefaultIfname,omitempty"`
 }
 
 // TaskFromACS translates ecsacs.Task to apitask.Task by first marshaling the received
@@ -309,6 +320,9 @@ func TaskFromACS(acsTask *ecsacs.Task, envelope *ecsacs.PayloadMessage) (*Task, 
 	if err := json.Unmarshal(data, task); err != nil {
 		return nil, err
 	}
+
+	// Set the EnableFaultInjection field if present
+	task.EnableFaultInjection = aws.BoolValue(acsTask.EnableFaultInjection)
 
 	// Overrides the container command if it's set
 	for _, container := range task.Containers {
@@ -1491,7 +1505,7 @@ func (task *Task) addNetworkResourceProvisioningDependencyAwsvpc(cfg *config.Con
 		if container.IsInternal() {
 			continue
 		}
-		container.BuildContainerDependency(NetworkPauseContainerName, apicontainerstatus.ContainerResourcesProvisioned, apicontainerstatus.ContainerPulled)
+		container.BuildContainerDependency(NetworkPauseContainerName, apicontainerstatus.ContainerResourcesProvisioned, apicontainerstatus.ContainerManifestPulled)
 		pauseContainer.BuildContainerDependency(container.Name, apicontainerstatus.ContainerStopped, apicontainerstatus.ContainerStopped)
 	}
 
@@ -1769,6 +1783,7 @@ func (task *Task) dockerConfig(container *apicontainer.Container, apiVersion doc
 			return nil, &apierrors.DockerClientConfigError{Msg: "Unable decode given docker config: " + err.Error()}
 		}
 	}
+
 	if container.HealthCheckType == apicontainer.DockerHealthCheckType && containerConfig.Healthcheck == nil {
 		return nil, &apierrors.DockerClientConfigError{
 			Msg: "docker health check is nil while container health check type is DOCKER"}
@@ -1879,6 +1894,13 @@ func (task *Task) ApplyExecutionRoleLogsAuth(hostConfig *dockercontainer.HostCon
 	if hostConfig.LogConfig.Config == nil {
 		hostConfig.LogConfig.Config = map[string]string{}
 	}
+	logger.Info("Applying execution role credentials to container log auth", logger.Fields{
+		field.TaskARN:           executionRoleCredentials.ARN,
+		field.RoleType:          executionRoleCredentials.IAMRoleCredentials.RoleType,
+		field.RoleARN:           executionRoleCredentials.IAMRoleCredentials.RoleArn,
+		field.CredentialsID:     executionRoleCredentials.IAMRoleCredentials.CredentialsID,
+		awslogsCredsEndpointOpt: credentialsEndpointRelativeURI,
+	})
 	hostConfig.LogConfig.Config[awslogsCredsEndpointOpt] = credentialsEndpointRelativeURI
 	return nil
 }
@@ -2910,6 +2932,9 @@ func (task *Task) GetExecutionStoppedAt() time.Time {
 
 // String returns a human-readable string representation of this object
 func (task *Task) String() string {
+	task.lock.RLock()
+	defer task.lock.RUnlock()
+
 	return task.stringUnsafe()
 }
 
@@ -3742,4 +3767,46 @@ func (task *Task) HasAContainerWithResolvedDigest() bool {
 		}
 	}
 	return false
+}
+
+func (task *Task) IsFaultInjectionEnabled() bool {
+	task.lock.RLock()
+	defer task.lock.RUnlock()
+
+	return task.EnableFaultInjection
+}
+
+func (task *Task) GetNetworkMode() string {
+	task.lock.RLock()
+	defer task.lock.RUnlock()
+
+	return task.NetworkMode
+}
+
+func (task *Task) GetNetworkNamespace() string {
+	task.lock.RLock()
+	defer task.lock.RUnlock()
+
+	return task.NetworkNamespace
+}
+
+func (task *Task) SetNetworkNamespace(netNs string) {
+	task.lock.Lock()
+	defer task.lock.Unlock()
+
+	task.NetworkNamespace = netNs
+}
+
+func (task *Task) GetDefaultIfname() string {
+	task.lock.RLock()
+	defer task.lock.RUnlock()
+
+	return task.DefaultIfname
+}
+
+func (task *Task) SetDefaultIfname(ifname string) {
+	task.lock.Lock()
+	defer task.lock.Unlock()
+
+	task.DefaultIfname = ifname
 }

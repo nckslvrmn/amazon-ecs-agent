@@ -82,6 +82,7 @@ const (
 	capabilityGpuDriverVersion                             = "gpu-driver-version"
 	capabilityEBSTaskAttach                                = "storage.ebs-task-volume-attach"
 	capabilityContainerRestartPolicy                       = "container-restart-policy"
+	capabilityFaultInjection                               = "fault-injection"
 
 	// network capabilities, going forward, please append "network." prefix to any new networking capability we introduce
 	networkCapabilityPrefix      = "network."
@@ -133,6 +134,7 @@ var (
 		attributePrefix + taskEIAWithOptimizedCPU,
 		attributePrefix + capabilityServiceConnect,
 		attributePrefix + capabilityEBSTaskAttach,
+		attributePrefix + capabilityFaultInjection,
 	}
 	// List of capabilities that are only supported on external capaciity. Currently only one but keep as a list
 	// for future proof and also align with externalUnsupportedCapabilities.
@@ -198,6 +200,7 @@ var (
 //	ecs.capability.service-connect-v1
 //	ecs.capability.network.container-port-range
 //	ecs.capability.container-restart-policy
+//	ecs.capability.fault-injection
 func (agent *ecsAgent) capabilities() ([]*ecs.Attribute, error) {
 	var capabilities []*ecs.Attribute
 
@@ -311,6 +314,8 @@ func (agent *ecsAgent) capabilities() ([]*ecs.Attribute, error) {
 		}
 		capabilities = removeAttributesByNames(capabilities, externalUnsupportedCapabilities)
 	}
+
+	capabilities = agent.appendFaultInjectionCapabilities(capabilities)
 
 	return capabilities, nil
 }
@@ -535,6 +540,22 @@ func (agent *ecsAgent) appendEBSTaskAttachCapabilities(capabilities []*ecs.Attri
 		}
 	}
 	capabilities = appendNameOnlyAttribute(capabilities, attributePrefix+capabilityEBSTaskAttach)
+	return capabilities
+}
+
+func (agent *ecsAgent) appendFaultInjectionCapabilities(capabilities []*ecs.Attribute) []*ecs.Attribute {
+
+	// Check if the agent is running in EXTERNAL launch type
+	if agent.cfg.External.Enabled() {
+		seelog.Warn("Fault injection capability not enabled: EXTERNAL launch type detected")
+		return capabilities
+	}
+
+	if isFaultInjectionToolingAvailable() {
+		capabilities = appendNameOnlyAttribute(capabilities, attributePrefix+capabilityFaultInjection)
+	} else {
+		seelog.Warn("Fault injection capability not enabled: Required network tools are missing")
+	}
 	return capabilities
 }
 

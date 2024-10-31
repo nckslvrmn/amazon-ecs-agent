@@ -1,4 +1,35 @@
 # Changelog
+
+# 1.88.0
+* Feature - Fault Injection Service Integration [#4414](https://github.com/aws/amazon-ecs-agent/pull/4414)
+* Bugfix - Retry GPU devices check during env vars load if instance supports GPU [#4387](https://github.com/aws/amazon-ecs-agent/pull/4387)
+* Enhancement - Add additional logging for BHP fault [#4394](https://github.com/aws/amazon-ecs-agent/pull/4394)
+* Bugfix - Remove unnecessary set driver and instance log level calls [#4396](https://github.com/aws/amazon-ecs-agent/pull/4396)
+* Enhancement - Migrate ecs-init to aws-sdk-go-v2. [#4372](https://github.com/aws/amazon-ecs-agent/pull/4372)
+* Bugfix - Prevent TMDS access from being impacted by network-blackhole-port fault. [#4403](https://github.com/aws/amazon-ecs-agent/pull/4403)
+* Enhancement - Adding fault injection integration tests [#4399](https://github.com/aws/amazon-ecs-agent/pull/4399)
+* Enhancement - log acs/tacs endpoint [#4401](https://github.com/aws/amazon-ecs-agent/pull/4401)
+* Enhancement - Add SourcesToFilter support for network-blackhole-port fault [#4408](https://github.com/aws/amazon-ecs-agent/pull/4408)
+* Bugfix-  Add validation to prevent Fault Injection APIs from accepting IPv6 addresses. [#4411](https://github.com/aws/amazon-ecs-agent/pull/4411)
+
+# 1.87.1
+* Enhancement - Update Go version to 1.22.7
+* Enhancement - Update SSM Agent version to 3.3.859.0
+* Bugfix - Always re-generate an ECR auth token when task execution credentials ID change.
+* Bugfix - Do no err on duplicate netns creation.
+
+# 1.87.0
+* Feature - Add support for EBS Task Attach on Windows. [#4353](https://github.com/aws/amazon-ecs-agent/pull/4353)
+* Enhancement - Validate ECS_OFFHOST_INTROSPECTION_INTERFACE_NAME is a valid interface name. [#4275](https://github.com/aws/amazon-ecs-agent/pull/4275)
+* Enhancement - add a warning to ecs-init when it doesnt detect GPU devices and moves on. [#4338](https://github.com/aws/amazon-ecs-agent/pull/4338)
+* Enhancement - Add resources to the log message "Resources not consumed, enough resources not available". [#4328](https://github.com/aws/amazon-ecs-agent/pull/4328)
+* Bugfix - Add read lock to task object String method. [#4288](https://github.com/aws/amazon-ecs-agent/pull/4288)
+
+# 1.86.3
+* Bugfix: AWSVPC task containers' transition to MANIFEST_PULLED state should depend on the network pause container reaching RESOURCES_PROVISIONED state. [#4286](https://github.com/aws/amazon-ecs-agent/pull/4286)
+* Enhancement: Update manifest pull retry strategy so that first few retries are quicker to help setups on which image repository calls depend on network pause container being initialized [#4289](https://github.com/aws/amazon-ecs-agent/pull/4289)
+* Bugfix: Streamline how tasks stopped per ECS Control Plane [#4301](https://github.com/aws/amazon-ecs-agent/pull/4301)
+
 # 1.86.2
 * Bugfix - Add more validation of stats received from Docker [#4295](https://github.com/aws/amazon-ecs-agent/pull/4295)
 

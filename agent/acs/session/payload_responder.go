@@ -132,6 +132,12 @@ func (pmHandler *payloadMessageHandler) addPayloadTasks(payload *ecsacs.PayloadM
 			loggerfield.DesiredStatus: apiTask.GetDesiredStatus(),
 		})
 
+		if apiTask.IsFaultInjectionEnabled() {
+			logger.Info("Fault Injection Enabled for task", logger.Fields{
+				loggerfield.TaskARN: apiTask.Arn,
+			})
+		}
+
 		if task.RoleCredentials != nil {
 			// The payload from ACS for the task has credentials for the
 			// task. Add those to the credentials manager and set the
@@ -148,6 +154,13 @@ func (pmHandler *payloadMessageHandler) addPayloadTasks(payload *ecsacs.PayloadM
 				allTasksOK = false
 				continue
 			}
+			logger.Info("Found application credentials for task", logger.Fields{
+				loggerfield.TaskARN:       apiTask.Arn,
+				loggerfield.TaskVersion:   apiTask.Version,
+				loggerfield.RoleARN:       taskIAMRoleCredentials.RoleArn,
+				loggerfield.RoleType:      taskIAMRoleCredentials.RoleType,
+				loggerfield.CredentialsID: taskIAMRoleCredentials.CredentialsID,
+			})
 			apiTask.SetCredentialsID(taskIAMRoleCredentials.CredentialsID)
 		}
 
@@ -189,6 +202,13 @@ func (pmHandler *payloadMessageHandler) addPayloadTasks(payload *ecsacs.PayloadM
 				allTasksOK = false
 				continue
 			}
+			logger.Info("Found execution credentials for task", logger.Fields{
+				loggerfield.TaskARN:       apiTask.Arn,
+				loggerfield.TaskVersion:   apiTask.Version,
+				loggerfield.RoleARN:       taskExecutionIAMRoleCredentials.RoleArn,
+				loggerfield.RoleType:      taskExecutionIAMRoleCredentials.RoleType,
+				loggerfield.CredentialsID: taskExecutionIAMRoleCredentials.CredentialsID,
+			})
 			apiTask.SetExecutionRoleCredentialsID(taskExecutionIAMRoleCredentials.CredentialsID)
 		}
 
