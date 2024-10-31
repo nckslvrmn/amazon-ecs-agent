@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -39,6 +40,8 @@ import (
 	mock_mobypkgwrapper "github.com/aws/amazon-ecs-agent/agent/utils/mobypkgwrapper/mocks"
 	"github.com/aws/amazon-ecs-agent/ecs-agent/api/ecs/model/ecs"
 	md "github.com/aws/amazon-ecs-agent/ecs-agent/manageddaemon"
+	"github.com/aws/amazon-ecs-agent/ecs-agent/utils/execwrapper"
+	mock_execwrapper "github.com/aws/amazon-ecs-agent/ecs-agent/utils/execwrapper/mocks"
 	"github.com/aws/aws-sdk-go/aws"
 	aws_credentials "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/golang/mock/gomock"
@@ -971,4 +974,66 @@ func TestAppendFSxWindowsFileServerCapabilities(t *testing.T) {
 	capabilities := agent.appendFSxWindowsFileServerCapabilities(inputCapabilities)
 	assert.Equal(t, len(inputCapabilities), len(capabilities))
 	assert.EqualValues(t, capabilities, inputCapabilities)
+}
+
+func TestCheckFaultInjectionTooling(t *testing.T) {
+	originalLookPath := exec.LookPath
+	defer func() {
+		lookPathFunc = originalLookPath
+	}()
+	originalOSExecWrapper := execwrapper.NewExec()
+	defer func() {
+		osExecWrapper = originalOSExecWrapper
+	}()
+
+	t.Run("all tools and kernel modules available", func(t *testing.T) {
+		lookPathFunc = func(file string) (string, error) {
+			return "/usr/bin" + file, nil
+		}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockExec := mock_execwrapper.NewMockExec(ctrl)
+		cmdExec := mock_execwrapper.NewMockCmd(ctrl)
+		gomock.InOrder(
+			mockExec.EXPECT().CommandContext(gomock.Any(), modInfoCmd, faultInjectionKernelModules).Times(1).Return(cmdExec),
+			cmdExec.EXPECT().CombinedOutput().Times(1).Return([]byte{}, nil),
+		)
+		osExecWrapper = mockExec
+		assert.True(t,
+			checkFaultInjectionTooling(),
+			"Expected checkFaultInjectionTooling to return true when all tools are available")
+	})
+
+	t.Run("missing kernel modules", func(t *testing.T) {
+		lookPathFunc = func(file string) (string, error) {
+			return "/usr/bin" + file, nil
+		}
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		mockExec := mock_execwrapper.NewMockExec(ctrl)
+		cmdExec := mock_execwrapper.NewMockCmd(ctrl)
+		gomock.InOrder(
+			mockExec.EXPECT().CommandContext(gomock.Any(), modInfoCmd, faultInjectionKernelModules).Times(1).Return(cmdExec),
+			cmdExec.EXPECT().CombinedOutput().Times(1).Return([]byte{}, errors.New("modinfo: ERROR: Module sch_netem not found.")),
+		)
+		osExecWrapper = mockExec
+		assert.False(t,
+			checkFaultInjectionTooling(),
+			"Expected checkFaultInjectionTooling to return false when kernel modules are not available")
+	})
+
+	tools := []string{"iptables", "tc", "nsenter"}
+	for _, tool := range tools {
+		t.Run(tool+" missing", func(t *testing.T) {
+			lookPathFunc = func(file string) (string, error) {
+				if file == tool {
+					return "", exec.ErrNotFound
+				}
+				return "/usr/bin" + file, nil
+			}
+			assert.False(t,
+				checkFaultInjectionTooling(),
+				"Expected checkFaultInjectionTooling to return false when a tool is missing")
+		})
+	}
 }

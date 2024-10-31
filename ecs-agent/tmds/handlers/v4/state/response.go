@@ -38,6 +38,7 @@ type TaskResponse struct {
 	EphemeralStorageMetrics *EphemeralStorageMetrics `json:"EphemeralStorageMetrics,omitempty"`
 	CredentialsID           string                   `json:"-"`
 	TaskNetworkConfig       *TaskNetworkConfig       `json:"-"`
+	FaultInjectionEnabled   bool                     `json:"FaultInjectionEnabled"`
 }
 
 // TaskNetworkConfig contains required network configurations for network faults injection.
@@ -46,12 +47,30 @@ type TaskNetworkConfig struct {
 	NetworkNamespaces []*NetworkNamespace
 }
 
+func NewTaskNetworkConfig(networkMode, path, deviceName string) *TaskNetworkConfig {
+	return &TaskNetworkConfig{
+		NetworkMode: networkMode,
+		NetworkNamespaces: []*NetworkNamespace{
+			{
+				Path: path,
+				NetworkInterfaces: []*NetworkInterface{
+					{
+						DeviceName: deviceName,
+					},
+				},
+			},
+		},
+	}
+}
+
 type NetworkNamespace struct {
 	Path              string
 	NetworkInterfaces []*NetworkInterface
 }
 
+// NetworkInterface contains information of the network interface.
 type NetworkInterface struct {
+	// DeviceName is the device name on the host.
 	DeviceName string
 }
 
